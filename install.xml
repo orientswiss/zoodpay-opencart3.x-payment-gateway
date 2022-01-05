@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>ZoodPay Buy Now Pay Later</name>
+    <code>zoodPay</code>
+    <version>3.x</version>
+    <author>ZoodPay</author>
+    <link>https://zoodpay.com/</link>
+
+
+
+<file path="system/library/template/twig.php">	
+	     <operation>
+			<search><![CDATA[ $file = DIR_TEMPLATE . $filename . '.twig'; ]]></search>
+			<add position="replace"><![CDATA[ 
+           	$file = modification( DIR_TEMPLATE . $filename . '.twig' );
+			]]></add>
+		</operation>
+	</file>	
+    <file path="admin/controller/sale/order.php">
+
+<!--        <operation>-->
+<!--            <search index="0"><![CDATA[	$data['text_order'] = sprintf($this->language->get('text_order'), $this->request->get['order_id']);]]></search>-->
+<!--            <add position="after"><![CDATA[-->
+<!--			if (isset($this->request->get['zoodpay'])) {-->
+<!--				$transaction_id = $this->db->query("SELECT * FROM `" . DB_PREFIX . "zoodpay_order_information` WHERE order_id = '" . $this->request->get['order_id'] . "'")->row['transaction_id'];-->
+<!--			$data['text_order'] = sprintf($this->language->get('text_order'), $transaction_id);-->
+<!--			  }-->
+<!--            ]]>-->
+<!--            </add>-->
+<!--        </operation>-->
+        <operation>
+            <search index="1"><![CDATA[	$data['cancel'] = $this->url->link('sale/order', 'user_token=' . $this->session->data['user_token'] . $url, true);]]></search>
+            <add position="after"><![CDATA[
+			if (isset($this->request->get['zoodpay'])) {
+				$data['cancel'] = $this->url->link('extension/payment/zoodpay', 'user_token=' . $this->session->data['user_token'] . $url, true);]]>
+                }
+            </add>
+        </operation>
+        <operation>
+            <search index="0"><![CDATA[$data['shipping'] = $this->url->link('sale/order/shipping', 'user_token=' . $this->session->data['user_token'] . '&order_id=' . (int)$this->request->get['order_id'], true);]]></search>
+            <add position="before"><![CDATA[
+ 				if (isset($this->request->get['zoodpay'])) {
+					$this->load->language('extension/payment/zoodpay');
+			$data['breadcrumbs'] = array();
+            $data['breadcrumbs'][] = array(
+                'text' => $this->language->get('text_home'),
+                'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
+            );
+
+            $data['breadcrumbs'][] = array(
+                'text' => $this->language->get('text_extensions'),
+                'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true)
+            );
+
+            $data['breadcrumbs'][] = array(
+                'text' => $this->language->get('heading_title'),
+                'href' => $this->url->link('extension/payment/zoodpay', 'user_token=' . $this->session->data['user_token'], true)
+            );
+				}
+	 		]]>
+            </add>
+        </operation>
+
+        <operation>
+            <search index="0"><![CDATA[$this->response->setOutput($this->load->view('sale/order_info', $data));]]></search>
+            <add position="before"><![CDATA[
+ 			if(isset($order_info['payment_code']))
+            {
+                if($order_info['payment_code'] == 'zoodpay')
+                {
+                 $this->load->language('extension/payment/zoodpay');
+                    $data['payment_zoodpay_status'] = 1;
+            $transaction_id = $this->db->query("SELECT * FROM `" . DB_PREFIX . "zoodpay_order_information` WHERE order_id = '" . $this->request->get['order_id'] . "'")->row['transaction_id'];
+		         $data['text_order'] = sprintf($this->language->get('text_order'), $this->request->get['order_id'] ).' - '.$this->language->get('text_transaction_info').': '.$transaction_id;
+
+                }
+                else {
+                    $data['payment_zoodpay_status'] = 0;
+                }
+            }
+	 		]]>
+            </add>
+        </operation>
+
+    </file>
+    
+    <file path="system/framework.php">
+        <operation>
+            <search index="0"><![CDATA[setcookie($config->get('session_name'), $session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'));]]></search>
+            <add position="replace"><![CDATA[
+ 				if (version_compare( mb_strimwidth(phpversion(), 0 , 3), '7.2', '=')) {
+                    setcookie($config->get('session_name'), $session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path').'; SameSite=None', ini_get('session.cookie_domain'),true,true);
+                } else if(version_compare( mb_strimwidth(phpversion(), 0 , 3), '7.3', '=')) {
+setcookie($config->get('session_name'), $session->getId(), ['expires' => ini_get('session.cookie_lifetime'), 'path' => ini_get('session.cookie_path'), 'domain' => ini_get('session.cookie_domain'), 'samesite' => 'None', 'secure' => true, 'httponly' => true]);
+} else {
+                    setcookie($config->get('session_name'), $session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'));
+                }
+	 		]]>
+            </add>
+        </operation>
+    </file>
+    <file path="catalog/controller/startup/session.php">
+        <operation>
+            <search index="0"><![CDATA[setcookie($this->config->get('session_name'), $this->session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'));]]></search>
+            <add position="after"><![CDATA[
+ 				if (version_compare( mb_strimwidth(phpversion(), 0 , 3), '7.2', '=')) {
+                    setcookie($this->config->get('session_name'), $this->session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path').'; SameSite=None', ini_get('session.cookie_domain'),true,true);
+                } else if(version_compare( mb_strimwidth(phpversion(), 0 , 3), '7.3', '=')) {
+setcookie($this->config->get('session_name'), $this->session->getId(), ['expires' => ini_get('session.cookie_lifetime'), 'path' => ini_get('session.cookie_path'), 'domain' => ini_get('session.cookie_domain'), 'samesite' => 'None', 'secure' => true, 'httponly' => true]);
+} else {
+                    setcookie($this->config->get('session_name'), $this->session->getId(), ini_get('session.cookie_lifetime'), ini_get('session.cookie_path'), ini_get('session.cookie_domain'));
+                }
+	 		]]>
+            </add>
+        </operation>
+    </file>
+<!--    <file path="admin/controller/common/column_left.php">-->
+<!--        <operation>-->
+<!--            <search index="0"><![CDATA[	if ($this->user->hasPermission('access', 'sale/recurring')) {	]]></search>-->
+<!--            <add position="before"><![CDATA[-->
+<!--		if ($this->config->get('payment_zoodpay_status')) {-->
+<!--if ($this->user->hasPermission('access', 'extension/payment/zoodpay')) {-->
+<!--        $sale[] = array(-->
+<!--        'name'	   => 'ZoodPay Orders',-->
+<!--        'href'     => $this->url->link('extension/payment/zoodpay', 'user_token=' . $this->session->data['user_token'], true),-->
+<!--        'children' => array()-->
+<!--        );-->
+<!--        }-->
+<!--		}-->
+<!--	 -->
+<!--	 		]]>-->
+<!--            </add>-->
+<!--        </operation>-->
+<!--    </file>-->
+<file path="catalog/controller/checkout/payment_method.php">
+<!--        <operation>-->
+<!--            <search index="0"><![CDATA[foreach ($method_data as $key => $value) {]]></search>-->
+<!--            <add position="before"><![CDATA[-->
+<!-- 				if (isset($method_data['zoodpay'])) {-->
+<!--                    $zoodpay = array_pop($methods);-->
+<!--                    while ($zoodpay) {-->
+<!--                        $method = $this->{'model_extension_payment_zoodpay'}->getMethod($this->session->data['payment_address'], $total, $zoodpay);-->
+<!--                        if ($method) {-->
+<!--                            $method_data[$zoodpay] = $method;-->
+<!--                        }-->
+<!--                        $zoodpay = array_pop($methods);-->
+<!--                    }-->
+<!--                }-->
+<!--	 		]]>-->
+<!--            </add>-->
+<!--        </operation>-->
+    <operation>
+        <search index="0"><![CDATA[$recurring = $this->cart->hasRecurringProducts();]]></search>
+        <add position="after"><![CDATA[
+ 				$iso_code_2= array(
+                "SA"=>"KSA",
+                "KZ"=>"KZ",
+                "UZ"=>"UZ",
+                "IQ"=>"IQ",
+                "JO"=>"JO",
+                "KW"=>"KW",
+            );
+             $query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "zoodpay_configuration` WHERE market_code IN ('" . $iso_code_2[$this->session->data['payment_address']['iso_code_2']] . "','" . $this->session->data['payment_address']['iso_code_3'] . "')");
+             $methods = array();
+             if ($query->num_rows) {
+                 foreach ($query->rows as $row) {
+                     $methods[] = $row['service_code'];
+                 }
+             }
+	 		]]>
+        </add>
+    </operation>
+    <operation>
+        <search index="0"><![CDATA[$this->load->model('extension/payment/' . $result['code']);]]></search>
+        <add position="after"><![CDATA[
+ 			if ($result['code'] === 'zoodpay') {
+ 				    for($i=0; count($methods); $i++){
+                        $method = $this->{'model_extension_payment_' . $result['code']}->getMethod($this->session->data['payment_address'], $total, array_pop($methods));
+                        if ($method) {
+                            $method_data[$method['service_code']] = $method;
+                        }
+                    }
+
+                        continue;
+                }
+	 		]]>
+        </add>
+    </operation>
+
+
+    <operation>
+        <search index="0"><![CDATA[  $this->session->data['payment_method'] = $this->session->data['payment_methods'][$this->request->post['payment_method']];]]></search>
+        <add position="before"><![CDATA[
+ 			 $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "zoodpay_configuration");
+            if ($query->num_rows) {
+                $data = $query->rows;
+                for($i=0;$i<count($data);$i++){
+                    if ($data[$i]['service_code'] == $this->request->post['payment_method']){
+
+                        $this->session->data['payment_methods'][$this->request->post['payment_method']]['code'] = "zoodpay";
+
+
+                    }
+                }
+
+            }
+	 		]]>
+        </add>
+    </operation>
+
+    </file>
+  <file path="admin/view/template/sale/order_info.twig">
+        <operation>
+            <search index="0"><![CDATA[$(document).delegate('#button-commission-remove', 'click', function() {]]></search>
+            <add position="before"><![CDATA[
+ 				$('input[name=\'product\']').autocomplete({
+      'source': function(request, response) {
+        $.ajax({
+          url: 'index.php?route=extension/payment/zoodpay/autocomplete&user_token={{ user_token }}&filter_order={{ order_id }}&filter_name=' +  encodeURIComponent(request),
+          dataType: 'json',
+          success: function(json) {
+            response($.map(json, function(item) {
+              return {
+                label: item['name'],
+                value: item['product_id'],
+                model: item['model'],
+                price: item['price'],
+                quantity: item['quantity']
+              }
+            }));
+          }
+        });
+      },
+      'select': function(item) {
+        $('input[name=\'product\']').val('');
+        $('input[name=\'product_id\']').val(item['value']);
+        $('input[name=\'model\']').val(item['model']);
+
+        $('#product-category' + item['value']).remove();
+
+        $('#product-category').append('<div  id="product-category' + item['value'] + '"><i class="fa fa-minus-circle"></i> ' + item['label'] + '<input type="hidden" name="product_category[]" value="' + item['value'] + '" /><input type="hidden" name="product_category_price[]" value="' + item['price'] + '" /><input  type="number" name="product_category_quantity[]" placeholder="quantity" value="' + item['quantity'] + '"/></div>');
+      }
+    });
+$('#product-category').delegate('.fa-minus-circle', 'click', function() {
+  $(this).parent().remove();
+});
+    $('#btn-refund').on('click', function (e) {
+      e.preventDefault();
+      $.ajax({
+        url: 'index.php?route=extension/payment/zoodpay/refundOrder&user_token={{ user_token }}',
+        type: 'post',
+        data: 'amount={{ amount }}&order_id={{ order_id }}&comment1=' + encodeURIComponent($('textarea[name=\'comment1\']').val()) + $('form').serialize(),
+        dataType: 'json',
+        beforeSend: function () {
+          $('#btn-refund').button('loading');
+        },
+        complete: function () {
+          $('#btn-refund').button('reset');
+        },
+        success: function (json) {
+          console.log(json['test']);
+          $('.alert-dismissible').remove();
+
+           if (json['error']) {
+            if(json['error'] != "[object Object]")
+            {
+              $('#refund').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+            }
+            else{
+              for (const [key, value] of Object.entries(json['error'])) {
+                if (value instanceof Object ){
+                  for (const [key1, value1] of Object.entries(value)) {
+                    if (key1 === 'message' || key1 === 'details') {
+                      $('#refund').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + value1 + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+                    }
+
+                  }
+                }
+              }
+            }
+
+
+
+            // $('#table_orders').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + JSON.stringify(json['error']) + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+          }
+
+
+          if (json['success']) {
+			$('#refund').load('index.php?route=extension/payment/zoodpay/history&user_token={{ user_token }}&order_id={{ order_id }}');
+            $('#refund').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+            //setTimeout(t,1000);
+          }
+          // $('#modal-developer').modal("hide");
+          // $('#modal-developer').remove;
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+          alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+        }
+      });
+    });
+	 		]]>
+            </add>
+        </operation>
+	
+	<operation>
+	  <search index="0"><![CDATA[$('#button-history').on('click', function() {]]></search>
+            <add position="before"><![CDATA[
+		$('#refund').delegate('.pagination a', 'click', function(e) {
+      		e.preventDefault();
+
+      		$('#refund').load(this.href);
+		});
+		$('#refund').load('index.php?route=extension/payment/zoodpay/history&user_token={{ user_token }}&order_id={{ order_id }}');
+]]>
+			  
+            </add>
+	</operation>
+	<operation>
+	  <search index="1"><![CDATA[{% for tab in tabs %}]]></search>
+            <add position="before"><![CDATA[
+<div class="tab-pane " id="tab-refund">
+            <div id="refund"></div>
+            <br />
+            <fieldset>
+              <legend>{{ text_history_add }}</legend>
+              <form class="form-horizontal">
+                <div class="form-group required">
+                  <label class="col-sm-2 control-label" for="input-product"><span data-toggle="tooltip" title="{{ help_product }}">{{ entry_product }}</span></label>
+                  <div class="col-sm-10">
+                    <input type="text" name="product"  placeholder="{{ entry_product }}" id="input-product" class="form-control" />
+                    <input type="hidden" name="product_id" value="{{ product_id }}" />
+                    {% if error_product %}
+                      <div class="text-danger">{{ error_product }}</div>
+                    {% endif %}
+
+                  </div>
+
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-2 control-label" for="input-product">Products</label>
+                  <div id="product-category" class="col-sm-10"></div>
+                </div>
+                <div class="form-group required">
+                  <label class="col-sm-2 control-label" for="input-comment">{{ entry_comment }}</label>
+                  <div class="col-sm-10">
+                    <textarea name="comment1" minlength="3" rows="8" id="input-comment1" class="form-control"></textarea>
+                  </div>
+                </div>
+              </form>
+            </fieldset>
+            <div class="text-right">
+              <button id="btn-refund" data-loading-text={{text_loading}}" class="btn btn-primary"><i class="fa fa-plus-circle"></i> Refund</button>
+            </div>
+          </div>]]>
+            </add>
+	</operation>
+<operation>
+	  <search index="0"><![CDATA[<li><a href="#tab-additional" data-toggle="tab">{{ tab_additional }}</a></li>]]></search>
+            <add position="after"><![CDATA[
+{% if  payment_zoodpay_status %}
+	<li><a href="#tab-refund" data-toggle="tab">{{ text_refund_tab }}</a></li>
+{%endif%}
+
+]]>
+            </add>
+	</operation>
+    </file>
+<!--  <file path="admin/controller/sale/order.php">-->
+<!--        <operation>-->
+<!--            <search index="0"><![CDATA[$this->response->setOutput($this->load->view('sale/order_info', $data));]]></search>-->
+<!--            <add position="before"><![CDATA[-->
+<!-- 			if(isset($order_info['payment_code']))-->
+<!--            {-->
+<!--                if($order_info['payment_code'] == 'zoodpay')-->
+<!--                {-->
+<!--                    $data['payment_zoodpay_status'] = 1;-->
+<!--                }-->
+<!--                else {-->
+<!--                    $data['payment_zoodpay_status'] = 0;-->
+<!--                }-->
+<!--            }-->
+<!--	 		]]>-->
+<!--            </add>-->
+<!--        </operation>-->
+<!--    </file>-->
+
+
+ <file path="catalog/view/theme/default/template/checkout/payment_method.twig">
+     <operation>
+         <search index="0"><![CDATA[<p>{{ text_payment_method }}</p>]]></search>
+         <add position="after">
+             <![CDATA[{% set zoodpay_terms = "" %}]]>
+         </add>
+     </operation>
+
+
+     <operation>
+         <search index="0"><![CDATA[{% endif %} </label>]]></search>
+         <add position="after">
+             <![CDATA[{% if payment_method.zoodpayterms %} {% set zoodpay_terms = payment_method.zoodpayterms %} {% endif %}]]>
+         </add>
+     </operation>
+
+
+
+     <operation>
+         <search index="0"><![CDATA[</div>
+{% endif %} ]]></search>
+         <add position="before">
+             <![CDATA[{{ zoodpay_terms }}]]>
+         </add>
+     </operation>
+
+
+ </file>
+  
+</modification>
+
+
+
+
+

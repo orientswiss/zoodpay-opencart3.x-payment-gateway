@@ -1,0 +1,67 @@
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title"><i class="fa fa-cog"></i> {{ heading_modal_title }}</h4>
+        </div>
+        <div class="modal-body">
+            <fieldset>
+                <legend>{{ textarea_legend }}</legend>
+                <div class="form-group"><textarea minlength="3" name="comment" rows="8" id="input-comment" class="form-control"
+                                                  style="line-height: initial;"></textarea></div>
+                <a data-toggle="tooltip" data-method="{{ method }}" title="{{ button_save }}"
+                   class="btn btn-modal btn-success"><i class="fa  fa-save"></i></a>
+            </fieldset>
+        </div>
+    </div>
+</div>
+<script type="text/javascript"><!--
+    function t() {
+        window.location.reload();
+    }
+    $('.btn-modal').on('click', function (e) {
+        let method = $('.btn-modal').data("method");
+        e.preventDefault();
+        $.ajax({
+            url: 'index.php?route=extension/payment/zoodpay/' + method + '&user_token={{ user_token }}',
+            type: 'post',
+            data: 'amount={{ amount }}&order_id={{ order_id }}&comment1=' + encodeURIComponent($('textarea[name=\'comment\']').val()),
+            dataType: 'json',
+            beforeSend: function () {
+                $('.fa-save').addClass('.fa-lock').removeClass('.fa-save');
+            },
+            complete: function () {
+                $('#fa-lock').addClass('.fa-save').removeClass('.fa-lock');
+            },
+            success: function (json) {
+                $('.alert-dismissible').remove();
+
+                if (json['error']) {
+                     for (const [key, value] of Object.entries(json['error'])) {
+                        if (value instanceof Object ){
+                            for (const [key1, value1] of Object.entries(value)) {
+                            //    if (key1 === 'message' || key1 === 'details') {
+                                    $('#table_orders').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + value1 + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+                                //}
+                                
+                            }
+                        };
+                    }   
+                    // $('#table_orders').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + JSON.stringify(json['error']) + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+                }
+
+                if (json['success']) {
+                    $('#table_orders').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+                    //setTimeout(t,1000);
+                }
+                $('#modal-developer').modal("hide");
+                $('#modal-developer').remove;
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+            }
+        });
+    });
+    //--></script>
+
+

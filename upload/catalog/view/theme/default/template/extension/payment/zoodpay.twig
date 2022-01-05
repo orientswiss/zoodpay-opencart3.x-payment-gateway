@@ -1,0 +1,89 @@
+<div id="zoodpay_form">
+    <input type="submit" id="button-confirm" class="btn btn-primary" value="{{ submit }}">
+</div>
+{% if zoodpay_error %}
+    <div id="message_error" class="alert alert-warning"><i class="fa fa-info-circle"></i>
+        {% for error in zoodpay_error %}
+            Zoodpay {{ error }}
+        {% endfor %}</div>
+{% endif %}
+
+<script type="text/javascript">
+    $('#button-confirm').on('click', function () {
+        $.ajax({
+            url: 'index.php?route=extension/payment/zoodpay/save',
+            type: 'post',
+            dataType: 'json',
+            beforeSend: function () {
+                $('#button-confirm').button('loading');
+            },
+            complete: function () {
+                $('#button-confirm').button('reset');
+            },
+            success: function (json) {
+                $('.alert-warning').remove();
+                if (json['action']) {
+                    html = '<form action="' + json['action'] + '" method="post" id="redirect">';
+                    html += '</form>';
+
+                    $('#zoodpay_form').after(html);
+
+                    $('#redirect').submit();
+                }
+                if (json['delivery_status']) {
+                    console.log(json['delivery_status']);
+                }
+                if (json['error']) {
+                    for (const [key, value] of Object.entries(json['error'])) {
+                        if (value instanceof Object ){
+                            for (const [key1, value1] of Object.entries(value)) {
+                                if (key1 === 'message' ) {
+                                    $('#zoodpay_form').before('<div id="message_error" class="alert alert-warning"><i class="fa fa-info-circle"></i> ' + value1  + '</div>');
+                                }
+                                if(key1 === 'details' &&  value1 !== "object")
+                                {
+                                    let k=1;
+                                    for (const [key2, value2] of Object.entries(value1)) {
+                                        if (value2 instanceof Object ){
+                                            let tempKey  ='';
+                                            let tempVal  ='';
+
+                                            for (const [key3, value3] of Object.entries(value2)) {
+
+
+                                                if( k % 2  === 0)
+                                                {
+                                                    $('#zoodpay_form').before('<div id="message_error" class="alert alert-warning"><i class="fa fa-info-circle"></i> ' + tempKey+ ': ' +tempVal  + '     ' + key3 + ': '+ value3  + '</div>');
+
+                                                }
+
+                                                tempKey = key3;
+                                                tempVal=value3;
+
+                                                k++;
+
+                                            }
+
+
+
+
+
+                                        };
+                                    }
+                                }
+
+                            }
+                        };
+                    }
+                }
+
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+            }
+        });
+
+    });
+
+</script>
+
